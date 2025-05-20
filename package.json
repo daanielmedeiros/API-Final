@@ -1,0 +1,18 @@
+{
+  "name": "supabase-bucket-api",
+  "version": "1.0.0",
+  "description": "API para acessar arquivos JSON do bucket Supabase",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "express": "^4.18.2",
+    "dotenv": "^16.4.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+} 
