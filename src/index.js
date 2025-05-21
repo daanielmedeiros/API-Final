@@ -7,9 +7,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Configurar CORS - liberando só seu domínio frontend (altere conforme seu domínio)
-app.use(cors({
-  origin: 'https://aplicativo-ginseng.vercel.app',
-}));
+app.use(cors());
 
 // Configuração do cliente Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
