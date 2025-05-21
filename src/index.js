@@ -1,9 +1,15 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');  // <== importe cors
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Configurar CORS - liberando só seu domínio frontend (altere conforme seu domínio)
+app.use(cors({
+  origin: 'https://aplicativo-ginseng.vercel.app',
+}));
 
 // Configuração do cliente Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -49,4 +55,4 @@ app.get('/files/:storeCode', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
-}); 
+});
