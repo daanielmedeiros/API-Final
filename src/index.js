@@ -6,7 +6,10 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configurar CORS - liberando só seu domínio frontend (altere conforme seu domínio)
+// Configurar CORS - liberando só seu domínio frontend (altere conforme seu domínio) 
+// {
+//  origin: 'https://aplicativo-ginseng.vercel.app',
+//}
 app.use(cors());
 
 // Configuração do cliente Supabase
@@ -46,6 +49,40 @@ app.get('/files/:storeCode', async (req, res) => {
 
     const jsonContent = await data.text();
     res.json(JSON.parse(jsonContent));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Nova rota para buscar dados da tabela bearer-token
+app.get('/bearer-token', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('bearer-token')
+      .select('*');
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Rota para buscar um token específico por ID
+app.get('/bearer-token/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const { data, error } = await supabase
+      .from('bearer-token')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
