@@ -1,89 +1,136 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');  // <== importe cors
-const { createClient } = require('@supabase/supabase-js');
+const cors = require('cors');
+const sql = require('mssql');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configurar CORS - liberando só seu domínio frontend (altere conforme seu domínio) 
-// {
-//  origin: 'https://aplicativo-ginseng.vercel.app',
-//}
+// Configuração do CORS
 app.use(cors());
 
-// Configuração do cliente Supabase
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Rota para listar todos os arquivos JSON do bucket
-app.get('/files', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .storage
-      .from('draft')
-      .list();
-
-    if (error) throw error;
-
-    const jsonFiles = data.filter(file => file.name.endsWith('.json'));
-    res.json(jsonFiles);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+// Configuração do SQL Server
+const sqlConfig = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+  server: process.env.DB_SERVER,
+  port: parseInt(process.env.DB_PORT),
+  options: {
+    trustServerCertificate: true,
+    encrypt: false
   }
-});
+};
 
-// Rota para obter um arquivo JSON específico pelo código da loja
-app.get('/files/:storeCode', async (req, res) => {
+// Função para conectar ao SQL Server
+async function connectToDatabase() {
   try {
-    const { storeCode } = req.params;
-    const fileName = `${storeCode}.json`;
-
-    const { data, error } = await supabase
-      .storage
-      .from('draft')
-      .download(fileName);
-
-    if (error) throw error;
-
-    const jsonContent = await data.text();
-    res.json(JSON.parse(jsonContent));
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    await sql.connect(sqlConfig);
+    console.log('Conectado ao SQL Server com sucesso!');
+  } catch (err) {
+    console.error('Erro ao conectar ao SQL Server:', err);
   }
-});
+}
 
-// Nova rota para buscar dados da tabela bearer-token
-app.get('/bearer-token', async (req, res) => {
+// Conectar ao banco de dados ao iniciar
+connectToDatabase();
+
+// Rota para buscar todos os tokens
+app.get('/tokens', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('bearer-token')
-      .select('*');
-
-    if (error) throw error;
-
-    res.json(data);
+    const result = await sql.query`SELECT * FROM tokens`;
+    res.json(result.recordset);
   } catch (error) {
+    console.error('Erro ao buscar tokens:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Rota para buscar um token específico por ID
-app.get('/bearer-token/:id', async (req, res) => {
+app.get('/tokens/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const result = await sql.query`
+      SELECT * FROM tokens 
+      WHERE id = ${id}
+    `;
     
-    const { data, error } = await supabase
-      .from('bearer-token')
-      .select('*')
-      .eq('id', id)
-      .single();
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'Token não encontrado' });
+    }
 
-    if (error) throw error;
-
-    res.json(data);
+    res.json(result.recordset[0]);
   } catch (error) {
+    console.error('Erro ao buscar token:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Rota para listar todas as lojas únicas da tabela draft
+app.get('/draft', async (req, res) => {
+  try {
+    const result = await sql.query`
+      SELECT DISTINCT loja_id 
+      FROM draft 
+      ORDER BY loja_id
+    `;
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Erro ao buscar lojas:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Rota para buscar dados de uma loja específica
+app.get('/draft/:loja_id', async (req, res) => {
+  try {
+    const { loja_id } = req.params;
+    const result = await sql.query`
+      SELECT 
+        loja_id,
+        code,
+        description,
+        launch,
+        deactivation,
+        thirdtolastcyclesales,
+        secondtolastcyclesales,
+        lastcyclesales,
+        currentcyclesales,
+        nextcycleprojection,
+        secondtonextcycleprojection,
+        stock_actual,
+        stock_intransit,
+        purchasesuggestion,
+        smartpurchase_purchasesuggestioncycle,
+        smartpurchase_nextcyclepurchasesuggestion,
+        pendingorder,
+        salescurve,
+        promotions_description,
+        promotions_discountpercent,
+        pricesellin,
+        businessunit,
+        codcategory,
+        criticalitem_dtprovidedregularization,
+        criticalitem_blockedwallet,
+        criticalitem_iscritical,
+        codsubcategory,
+        isproductdeactivated,
+        brandgroupcode,
+        dayswithoutsales,
+        coveragedays,
+        hascoverage,
+        TRIAL949
+      FROM draft 
+      WHERE loja_id = ${loja_id}
+    `;
+    
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'Loja não encontrada' });
+    }
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Erro ao buscar dados da loja:', error);
     res.status(500).json({ error: error.message });
   }
 });
