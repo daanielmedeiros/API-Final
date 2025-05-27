@@ -141,11 +141,13 @@ app.get('/bestsellers', async (req, res) => {
     const result = await sql.query`
       SELECT
         code,
+        description,
         SUM(currentcyclesales) AS total_vendas
       FROM
         draft
       GROUP BY
-        code
+        code,
+        description
       ORDER BY
         total_vendas DESC
       OFFSET 0 ROWS
