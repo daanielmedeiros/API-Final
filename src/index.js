@@ -4,7 +4,7 @@ const cors = require('cors');
 const sql = require('mssql');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 4000;
 
 // Configuração do CORS
 app.use(cors());
@@ -131,6 +131,30 @@ app.get('/draft/:loja_id', async (req, res) => {
     res.json(result.recordset);
   } catch (error) {
     console.error('Erro ao buscar dados da loja:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Rota para retornar os 10 produtos mais vendidos
+app.get('/bestsellers', async (req, res) => {
+  try {
+    const result = await sql.query`
+      SELECT
+        code,
+        SUM(currentcyclesales) AS total_vendas
+      FROM
+        draft
+      GROUP BY
+        code
+      ORDER BY
+        total_vendas DESC
+      OFFSET 0 ROWS
+      FETCH NEXT 10 ROWS ONLY
+    `;
+    
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Erro ao buscar bestsellers:', error);
     res.status(500).json({ error: error.message });
   }
 });
